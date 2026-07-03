@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Upvoting - Cridos Reddit Farm{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="text-center">
+        <h1 class="text-3xl font-bold">Upvoting in Progress</h1>
+        <p class="text-gray-400 mt-2">{{ post_count }} post(s) with {{ account_count }} accounts each</p>
+    </div>
+
+    <!-- Posts List -->
+    <div class="bg-gray-800 rounded-lg p-4">
+        <h3 class="text-sm font-medium text-gray-400 mb-2">Posts to upvote:</h3>
+        <ul class="text-sm space-y-1 max-h-32 overflow-y-auto">
+            {% for url in post_urls %}
+            <li class="text-gray-300 truncate">{{ loop.index }}. {{ url }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Progress Card -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <div class="flex justify-between items-center mb-4">
+            <span class="text-gray-400">Processing {{ post_count }} post(s) &times; {{ account_count }} accounts</span>
+            <span class="text-xs text-gray-500">Job ID: {{ job_id }}</span>
+        </div>
+
+        <div id="job-status"
+             hx-get="/upvotes/partials/job/{{ job_id }}"
+             hx-trigger="load, every 1500ms"
+             hx-swap="innerHTML">
+            <div class="text-center space-y-4">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+                <p class="text-gray-400">Starting upvote job...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note -->
+    <div class="bg-gray-700 rounded-lg p-4 text-sm text-gray-400">
+        <p>Posts are processed sequentially. For each post, accounts are randomly shuffled.</p>
+        <p class="mt-1">Estimated time: ~{{ (post_count * account_count * 1.5)|int }} minutes (assuming 90s average delay)</p>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-center gap-4">
+        <button id="cancel-btn" onclick="cancelJob()" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md font-medium">
+            Cancel Job
+        </button>
+        <a href="/upvotes" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md">
+            New Upvote
+        </a>
+        <a href="/" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md">
+            Dashboard
+        </a>
+    </div>
+</div>
+
+<script>
+// Auto-scroll event log to bottom after each HTMX update
+document.body.addEventListener('htmx:afterSwap', function(event) {
+    const eventLog = document.getElementById('event-log');
+    if (eventLog) {
+        eventLog.scrollTop = eventLog.scrollHeight;
+    }
+});
+
+// Cancel job function
+async function cancelJob() {
+    const btn = document.getElementById('cancel-btn');
+    btn.disabled = true;
+    btn.textContent = 'Cancelling...';
+    btn.classList.remove('bg-red-600', 'hover:bg-red-700');
+    btn.classList.add('bg-gray-500');
+
+    try {
+        const response = await fetch('/api/jobs/{{ job_id }}/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            btn.textContent = 'Cancelled';
+            setTimeout(() => {
+                window.location.href = '/upvotes';
+            }, 1500);
+        } else {
+            btn.textContent = 'Cancel Failed';
+            btn.classList.remove('bg-gray-500');
+            btn.classList.add('bg-red-600', 'hover:bg-red-700');
+            btn.disabled = false;
+        }
+    } catch (e) {
+        btn.textContent = 'Cancel Failed';
+        btn.classList.remove('bg-gray-500');
+        btn.classList.add('bg-red-600', 'hover:bg-red-700');
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}

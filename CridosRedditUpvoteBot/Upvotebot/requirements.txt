@@ -1,0 +1,21 @@
+# Browser automation
+playwright==1.40.0
+playwright-stealth>=2.0.0
+
+# CLI framework
+click==8.1.7
+
+# Pretty terminal output
+rich==13.7.0
+
+# Environment configuration
+python-dotenv==1.0.0
+
+# HTTP requests
+requests==2.31.0
+
+# Scheduling
+apscheduler==3.10.4
+
+# Human-like behavior
+bezier==2023.7.28

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Adding Account - Cridos Reddit Farm{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="text-center">
+        <h1 class="text-3xl font-bold">Adding Account</h1>
+        <p class="text-gray-400 mt-1">{{ username }}</p>
+    </div>
+
+    <!-- Progress -->
+    <div class="bg-gray-800 rounded-lg p-6"
+         hx-get="/api/jobs/{{ job_id }}"
+         hx-trigger="every 2s"
+         hx-swap="innerHTML"
+         hx-target="#job-status">
+
+        <div id="job-status" class="text-center space-y-4">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+            <p class="text-gray-400">Logging in and verifying account...</p>
+            <p class="text-xs text-gray-500">Job ID: {{ job_id }}</p>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-center gap-4">
+        <button id="cancel-btn" onclick="cancelJob()" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md font-medium">
+            Cancel Job
+        </button>
+        <a href="/accounts" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md">
+            Back to Accounts
+        </a>
+    </div>
+</div>
+
+<script>
+    // Auto-redirect when job completes
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        const content = evt.detail.target.innerHTML;
+        if (content.includes('"status": "finished"') || content.includes('"status": "failed"')) {
+            setTimeout(() => {
+                window.location.href = '/accounts';
+            }, 2000);
+        }
+    });
+
+    // Cancel job function
+    async function cancelJob() {
+        const btn = document.getElementById('cancel-btn');
+        btn.disabled = true;
+        btn.textContent = 'Cancelling...';
+        btn.classList.remove('bg-red-600', 'hover:bg-red-700');
+        btn.classList.add('bg-gray-500');
+
+        try {
+            const response = await fetch('/api/jobs/{{ job_id }}/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                btn.textContent = 'Cancelled';
+                setTimeout(() => {
+                    window.location.href = '/accounts';
+                }, 1500);
+            } else {
+                btn.textContent = 'Cancel Failed';
+                btn.classList.remove('bg-gray-500');
+                btn.classList.add('bg-red-600', 'hover:bg-red-700');
+                btn.disabled = false;
+            }
+        } catch (e) {
+            btn.textContent = 'Cancel Failed';
+            btn.classList.remove('bg-gray-500');
+            btn.classList.add('bg-red-600', 'hover:bg-red-700');
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}

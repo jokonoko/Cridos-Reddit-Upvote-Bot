@@ -1,0 +1,166 @@
+<!-- Job Status Partial -->
+{% if job.status == 'queued' %}
+<div class="text-center space-y-4">
+    <div class="animate-pulse text-4xl">&#128300;</div>
+    <p class="text-gray-400">Job queued, waiting for worker...</p>
+</div>
+
+{% elif job.status == 'started' %}
+<div class="space-y-4">
+    <!-- Header with spinner -->
+    <div class="flex items-center justify-center gap-3">
+        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
+        <p class="text-gray-300 font-medium">Upvoting in progress...</p>
+    </div>
+
+    {% if job.meta %}
+    <!-- Progress Header -->
+    <div class="flex justify-between text-sm text-gray-400 px-1">
+        <span>Account {{ job.meta.current_account or 0 }}/{{ job.meta.total_accounts or '?' }}</span>
+        <span>Post {{ job.meta.current_post or 0 }}/{{ job.meta.total_posts or '?' }}</span>
+    </div>
+
+    <!-- Progress Bar -->
+    {% set total_ops = (job.meta.total_accounts or 1) * (job.meta.total_posts or 1) %}
+    {% set completed_ops = (job.meta.success_count or 0) + (job.meta.failed_count or 0) %}
+    {% set progress_pct = (completed_ops / total_ops * 100) if total_ops > 0 else 0 %}
+    <div class="w-full bg-gray-700 rounded-full h-2.5">
+        <div class="bg-orange-500 h-2.5 rounded-full transition-all duration-300" style="width: {{ progress_pct|int }}%"></div>
+    </div>
+
+    <!-- Live Counters -->
+    <div class="flex justify-center gap-6 text-sm">
+        <span class="flex items-center gap-1">
+            <span class="text-green-500 text-lg">&#10003;</span>
+            <span class="text-green-400 font-medium">{{ job.meta.success_count or 0 }}</span>
+            <span class="text-gray-500">success</span>
+        </span>
+        <span class="flex items-center gap-1">
+            <span class="text-red-500 text-lg">&#10007;</span>
+            <span class="text-red-400 font-medium">{{ job.meta.failed_count or 0 }}</span>
+            <span class="text-gray-500">failed</span>
+        </span>
+    </div>
+
+    <!-- Live Event Log -->
+    {% if job.meta.events %}
+    <div class="mt-2">
+        <div class="text-xs text-gray-500 mb-2">Live Activity:</div>
+        <div class="bg-gray-800 rounded-lg p-3 h-64 overflow-y-auto font-mono text-xs" id="event-log">
+            {% for event in job.meta.events %}
+            <div class="py-1 border-b border-gray-700/50 {% if event.type == 'upvote_success' %}text-green-400{% elif event.type in ['upvote_failed', 'account_login_failed', 'browser_error'] %}text-red-400{% elif event.type == 'account_start' %}text-blue-400{% elif event.type == 'ip_rotated' %}text-purple-400{% elif event.type == 'ip_rotation_failed' %}text-yellow-400{% else %}text-gray-400{% endif %}">
+                {% if event.type == 'task_start' %}
+                &#9654; Starting: {{ event.total_posts }} posts &times; {{ event.total_accounts }} accounts
+                {% elif event.type == 'account_start' %}
+                &#8594; [{{ event.account_index }}/{{ event.total_accounts }}] Starting: {{ event.username }}
+                {% elif event.type == 'ip_rotated' %}
+                &#8635; IP rotated: {{ event.old_ip }} &rarr; {{ event.new_ip }}
+                {% elif event.type == 'ip_rotation_failed' %}
+                &#9888; IP rotation failed for {{ event.username }}
+                {% elif event.type == 'account_login_failed' %}
+                &#10007; {{ event.username }}: Not logged in (skipped {{ event.failed_count or 0 }} posts)
+                {% elif event.type == 'post_start' %}
+                &nbsp;&nbsp;&#8226; {{ event.username }} &rarr; post {{ event.post_index }}/{{ event.total_posts }}
+                {% elif event.type == 'upvote_success' %}
+                &nbsp;&nbsp;&#10003; {{ event.username }} upvoted post {{ event.post_index }}
+                {% elif event.type == 'upvote_failed' %}
+                &nbsp;&nbsp;&#10007; {{ event.username }} failed: {{ event.error[:50] }}{% if event.error|length > 50 %}...{% endif %}
+                {% elif event.type == 'browser_error' %}
+                &#9888; Browser error for {{ event.username }}: {{ event.error[:40] }}{% if event.error|length > 40 %}...{% endif %}
+                {% else %}
+                {{ event.type }}: {{ event }}
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="text-xs text-gray-500 text-center">Waiting for progress data...</p>
+    {% endif %}
+
+    <p class="text-xs text-gray-500 text-center">Started at {{ job.started_at }}</p>
+</div>
+
+{% elif job.status == 'finished' %}
+<div class="space-y-4">
+    <div class="text-center">
+        <div class="text-4xl text-green-500 mb-2">&#10003;</div>
+        <p class="text-green-400 font-medium">Completed!</p>
+    </div>
+
+    {% if job.result %}
+    <!-- Overall Stats -->
+    <div class="grid grid-cols-3 gap-4 mt-4">
+        <div class="bg-gray-700 rounded-lg p-4 text-center">
+            <div class="text-2xl font-bold text-blue-500">{{ job.result.total_posts }}</div>
+            <div class="text-sm text-gray-400">Posts</div>
+        </div>
+        <div class="bg-gray-700 rounded-lg p-4 text-center">
+            <div class="text-2xl font-bold text-green-500">{{ job.result.total_success }}</div>
+            <div class="text-sm text-gray-400">Successful</div>
+        </div>
+        <div class="bg-gray-700 rounded-lg p-4 text-center">
+            <div class="text-2xl font-bold text-red-500">{{ job.result.total_failed }}</div>
+            <div class="text-sm text-gray-400">Failed</div>
+        </div>
+    </div>
+
+    <!-- Per-Post Results -->
+    {% if job.result.posts %}
+    <div class="mt-6 space-y-4">
+        <h4 class="text-sm font-medium text-gray-400">Results by Post:</h4>
+        {% for post in job.result.posts %}
+        <div class="bg-gray-700 rounded-lg p-4">
+            <div class="flex justify-between items-start mb-2">
+                <a href="{{ post.post_url }}" target="_blank"
+                   class="text-sm text-orange-500 hover:underline truncate max-w-md">
+                    {{ post.post_url }}
+                </a>
+                <span class="text-sm">
+                    <span class="text-green-500">{{ post.success }}</span>/<span class="text-gray-400">{{ post.success + post.failed }}</span>
+                </span>
+            </div>
+
+            <!-- Account details (collapsible) -->
+            <details class="mt-2">
+                <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-400">
+                    Show account details
+                </summary>
+                <div class="mt-2 max-h-32 overflow-y-auto space-y-1">
+                    {% for r in post.results %}
+                    <div class="flex justify-between text-xs py-1 border-b border-gray-600">
+                        <span class="text-gray-300">{{ r.username }}</span>
+                        {% if r.success %}
+                        <span class="text-green-500">&#10003; Success</span>
+                        {% else %}
+                        <span class="text-red-500" title="{{ r.error }}">&#10007; {{ r.error[:30] }}{% if r.error|length > 30 %}...{% endif %}</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </details>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+{% elif job.status == 'failed' %}
+<div class="text-center space-y-4">
+    <div class="text-4xl text-red-500">&#10007;</div>
+    <p class="text-red-400 font-medium">Job Failed</p>
+    {% if job.error %}
+    <div class="bg-red-900/30 rounded-lg p-3 text-left">
+        <p class="text-sm text-red-300 font-mono whitespace-pre-wrap">{{ job.error[:500] }}</p>
+    </div>
+    {% endif %}
+</div>
+
+{% else %}
+<div class="text-center space-y-4">
+    <div class="text-4xl text-gray-500">?</div>
+    <p class="text-gray-400">Status: {{ job.status }}</p>
+</div>
+{% endif %}

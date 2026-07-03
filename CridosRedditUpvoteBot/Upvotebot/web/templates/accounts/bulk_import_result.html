@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Import Results - Cridos Reddit Farm{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div>
+        <h1 class="text-3xl font-bold">Import Complete</h1>
+        <p class="text-gray-400 mt-1">Processed {{ total }} accounts from CSV</p>
+    </div>
+
+    <!-- Results Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-gray-800 border border-gray-700 rounded-lg p-4 text-center">
+            <p class="text-3xl font-bold text-white">{{ total }}</p>
+            <p class="text-gray-400 text-sm">Total Rows</p>
+        </div>
+        <div class="bg-green-900/30 border border-green-600 rounded-lg p-4 text-center">
+            <p class="text-3xl font-bold text-green-400">{{ added }}</p>
+            <p class="text-gray-400 text-sm">Added</p>
+        </div>
+        <div class="bg-yellow-900/30 border border-yellow-600 rounded-lg p-4 text-center">
+            <p class="text-3xl font-bold text-yellow-400">{{ skipped }}</p>
+            <p class="text-gray-400 text-sm">Skipped (exists)</p>
+        </div>
+        <div class="bg-red-900/30 border border-red-600 rounded-lg p-4 text-center">
+            <p class="text-3xl font-bold text-red-400">{{ errors|length }}</p>
+            <p class="text-gray-400 text-sm">Errors</p>
+        </div>
+    </div>
+
+    <!-- Import Log -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h3 class="text-lg font-semibold mb-4">Import Log</h3>
+        <div class="space-y-2 max-h-96 overflow-y-auto">
+            {% for result in results %}
+            <div class="bg-gray-700 rounded-lg p-3 text-sm flex items-start space-x-2">
+                {% if result.status == 'added' %}
+                <span class="text-lg text-green-400">✓</span>
+                <div class="flex-1">
+                    <span class="text-green-400"><strong>{{ result.username }}</strong> - Added successfully</span>
+                </div>
+                {% elif result.status == 'skipped' %}
+                <span class="text-lg text-yellow-400">⊘</span>
+                <div class="flex-1">
+                    <span class="text-yellow-400"><strong>{{ result.username }}</strong> - Skipped (already exists)</span>
+                </div>
+                {% else %}
+                <span class="text-lg text-red-400">✗</span>
+                <div class="flex-1">
+                    <span class="text-red-400"><strong>{{ result.username or 'Row ' ~ result.row }}</strong> - {{ result.message }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Next Steps -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h3 class="text-lg font-semibold mb-3">Next Steps</h3>
+        <ul class="text-gray-400 text-sm space-y-2">
+            <li>1. Go to Accounts page to see your imported accounts</li>
+            <li>2. Click "Check Logins" to verify all accounts can log in</li>
+            <li>3. Click "Retry Logins" to attempt login for accounts not logged in</li>
+            <li>4. Click "Enable 18+" to enable mature content for all accounts</li>
+        </ul>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-4">
+        <a href="/accounts" class="px-6 py-2 bg-orange-600 hover:bg-orange-700 rounded-md font-medium">
+            View Accounts
+        </a>
+        <a href="/accounts/bulk-import" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 rounded-md font-medium">
+            Import More
+        </a>
+    </div>
+</div>
+{% endblock %}

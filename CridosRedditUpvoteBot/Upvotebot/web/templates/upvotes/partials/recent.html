@@ -1,0 +1,39 @@
+<!-- Recent Upvotes Partial -->
+{% if logs %}
+<div class="overflow-x-auto">
+    <table class="w-full">
+        <thead>
+            <tr class="text-left text-gray-400 text-sm border-b border-gray-700">
+                <th class="pb-2">Time</th>
+                <th class="pb-2">Status</th>
+                <th class="pb-2">Target</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-700">
+            {% for log in logs %}
+            <tr>
+                <td class="py-2 text-sm text-gray-400">{{ log.executed_at }}</td>
+                <td class="py-2">
+                    {% if log.status == 'success' %}
+                    <span class="text-green-500">&#10003; Success</span>
+                    {% else %}
+                    <span class="text-red-500">&#10007; Failed</span>
+                    {% endif %}
+                </td>
+                <td class="py-2 text-sm text-gray-400 max-w-xs truncate">
+                    {% if log.target_url %}
+                    <a href="{{ log.target_url }}" target="_blank" class="hover:text-orange-500">
+                        {{ log.target_url[:60] }}{% if log.target_url|length > 60 %}...{% endif %}
+                    </a>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-gray-500 text-center py-4">No upvotes recorded yet</p>
+{% endif %}

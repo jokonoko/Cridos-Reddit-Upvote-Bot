@@ -1,0 +1,14 @@
+<!-- Job Queued Row Replacement -->
+<tr class="bg-gray-700">
+    <td class="py-2">
+        <a href="/accounts/{{ account.username }}" class="text-orange-500 hover:underline">
+            {{ account.username }}
+        </a>
+    </td>
+    <td class="py-2 text-sm text-gray-400" colspan="2">
+        <span class="text-blue-400 animate-pulse">Job queued: {{ job_id[:8] }}...</span>
+    </td>
+    <td class="py-2">
+        <span class="text-xs text-gray-500">Running...</span>
+    </td>
+</tr>

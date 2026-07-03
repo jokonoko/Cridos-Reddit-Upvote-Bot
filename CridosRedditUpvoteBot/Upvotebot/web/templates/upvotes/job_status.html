@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Job Status - Cridos Reddit Farm{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="text-center">
+        <h1 class="text-3xl font-bold">Job Status</h1>
+        <p class="text-gray-400 mt-1">Job ID: {{ job.id }}</p>
+    </div>
+
+    <!-- Status Card -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <div id="job-status"
+             hx-get="/upvotes/partials/job/{{ job.id }}"
+             hx-trigger="every 3s [job.status != 'finished' && job.status != 'failed']"
+             hx-swap="innerHTML">
+            {% include "upvotes/partials/job_status.html" %}
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-center gap-4">
+        <a href="/upvotes" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-md">
+            New Upvote
+        </a>
+        <a href="/" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md">
+            Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+<!-- Accounts Table -->
+<table class="w-full">
+    <thead class="bg-gray-700">
+        <tr class="text-left text-sm text-gray-400">
+            <th class="px-4 py-3 w-10">
+                <input type="checkbox" id="select-all" class="w-4 h-4 rounded bg-gray-600 border-gray-500 text-orange-500 focus:ring-orange-500 cursor-pointer">
+            </th>
+            <th class="px-4 py-3">ID</th>
+            <th class="px-4 py-3">Username</th>
+            <th class="px-4 py-3">Health</th>
+            <th class="px-4 py-3">Login</th>
+            <th class="px-4 py-3">Last Action</th>
+            <th class="px-4 py-3">Proxy</th>
+            <th class="px-4 py-3">Actions</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-700">
+        {% for account in accounts %}
+        <tr class="hover:bg-gray-750 account-row">
+            <td class="px-4 py-3">
+                <input type="checkbox" class="account-checkbox w-4 h-4 rounded bg-gray-600 border-gray-500 text-orange-500 focus:ring-orange-500 cursor-pointer" data-account-id="{{ account.id }}">
+            </td>
+            <td class="px-4 py-3 text-gray-500">{{ account.id }}</td>
+            <td class="px-4 py-3">
+                <a href="/accounts/{{ account.username }}" class="text-orange-500 hover:underline font-medium">
+                    {{ account.username }}
+                </a>
+            </td>
+            <td class="px-4 py-3">
+                {% if account.status == 'active' %}
+                    <span class="text-green-400 font-medium">✓ Active</span>
+                {% elif account.status == 'banned' %}
+                    <span class="text-red-400 font-medium">✗ Banned</span>
+                {% else %}
+                    <span class="text-gray-400 font-medium">{{ account.status }}</span>
+                {% endif %}
+            </td>
+            <td class="px-4 py-3">
+                {% if account.login_status == 'logged_in' %}
+                    <span class="text-green-400 font-medium">✓ Yes</span>
+                {% elif account.login_status == 'not_logged_in' %}
+                    <span class="text-red-400 font-medium">✗ No</span>
+                {% else %}
+                    <span class="text-gray-500 font-medium">?</span>
+                {% endif %}
+            </td>
+            <td class="px-4 py-3 text-sm text-gray-400">
+                {{ account.last_action or 'Never' }}
+            </td>
+            <td class="px-4 py-3 text-sm">
+                {% if account.proxy %}
+                    <span class="text-blue-400">Custom</span>
+                {% else %}
+                    <span class="text-gray-500">Default</span>
+                {% endif %}
+            </td>
+            <td class="px-4 py-3">
+                <div class="flex gap-2">
+                    <form action="/accounts/check-health" method="POST" class="inline">
+                        <input type="hidden" name="account_ids" value="{{ account.id }}">
+                        <button type="submit"
+                                class="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 rounded">
+                            Check
+                        </button>
+                    </form>
+                    <form action="/accounts/retry-login" method="POST" class="inline">
+                        <input type="hidden" name="account_ids" value="{{ account.id }}">
+                        <button type="submit"
+                                class="px-2 py-1 text-xs bg-purple-600 hover:bg-purple-700 rounded">
+                            Retry Login
+                        </button>
+                    </form>
+                    <form action="/accounts/{{ account.username }}/delete" method="POST" class="inline"
+                          onsubmit="return confirm('Delete {{ account.username }}?')">
+                        <button type="submit"
+                                class="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 rounded">
+                            Delete
+                        </button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                No accounts found. <a href="/accounts/add" class="text-orange-500 hover:underline">Add your first account</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

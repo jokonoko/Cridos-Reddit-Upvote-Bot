@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Import - Cridos Reddit Farm{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <!-- Header -->
+    <div>
+        <h1 class="text-3xl font-bold">Bulk Import Accounts</h1>
+        <p class="text-gray-400 mt-1">Import multiple Reddit accounts from a CSV file</p>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <form action="/accounts/bulk-import" method="POST" enctype="multipart/form-data" class="space-y-6">
+            <div>
+                <label for="csv_file" class="block text-sm font-medium mb-2">CSV File *</label>
+                <input type="file" id="csv_file" name="csv_file" accept=".csv" required
+                       class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:border-orange-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-orange-600 file:text-white hover:file:bg-orange-700">
+            </div>
+
+            <div class="flex gap-4">
+                <button type="submit"
+                        class="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-md font-medium">
+                    Import Accounts
+                </button>
+                <a href="/accounts" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 rounded-md font-medium">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- CSV Format Info -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h3 class="text-lg font-semibold mb-3">CSV Format</h3>
+        <p class="text-gray-400 text-sm mb-4">Your CSV file must have a header row with these columns:</p>
+
+        <div class="bg-gray-900 rounded-md p-4 font-mono text-sm overflow-x-auto">
+            <p class="text-green-400">username,password,email</p>
+            <p class="text-gray-400">user1,pass123,email@example.com</p>
+            <p class="text-gray-400">user2,pass456,email2@example.com</p>
+        </div>
+
+        <ul class="text-gray-400 text-sm mt-4 space-y-1">
+            <li><span class="text-orange-400">username</span> - Required</li>
+            <li><span class="text-orange-400">password</span> - Required</li>
+            <li><span class="text-gray-500">email</span> - Optional</li>
+        </ul>
+    </div>
+
+    <!-- Notes -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h3 class="text-lg font-semibold mb-3">Notes</h3>
+        <ul class="text-gray-400 text-sm space-y-2">
+            <li>- Accounts that already exist will be skipped</li>
+            <li>- Accounts are added directly to the database without login verification</li>
+            <li>- Use "Check Logins" after import to verify account credentials</li>
+            <li>- Use "Retry Logins" to attempt login for failed accounts</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

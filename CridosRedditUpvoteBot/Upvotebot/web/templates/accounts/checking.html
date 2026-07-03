@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}Health Check - Cridos Reddit Farm{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="text-center">
+        <h1 class="text-3xl font-bold">Health Check in Progress</h1>
+        <p class="text-gray-400 mt-1">Checking {{ count }} account(s)</p>
+    </div>
+
+    <!-- Progress Overview -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <div id="progress-overview" class="space-y-4">
+            <!-- Progress Bar -->
+            <div>
+                <div class="flex justify-between text-sm mb-2">
+                    <span class="text-gray-400">Progress</span>
+                    <span id="progress-text" class="text-white font-medium">0 / {{ count }}</span>
+                </div>
+                <div class="w-full bg-gray-700 rounded-full h-3">
+                    <div id="progress-bar" class="bg-blue-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Counters -->
+            <div class="grid grid-cols-4 gap-4 mt-4">
+                <div class="bg-gray-700 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-green-400" id="active-count">0</div>
+                    <div class="text-xs text-gray-400">Active</div>
+                </div>
+                <div class="bg-gray-700 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-red-400" id="suspended-count">0</div>
+                    <div class="text-xs text-gray-400">Suspended</div>
+                </div>
+                <div class="bg-gray-700 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-yellow-400" id="shadowbanned-count">0</div>
+                    <div class="text-xs text-gray-400">Shadowbanned</div>
+                </div>
+                <div class="bg-gray-700 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-gray-400" id="unknown-count">0</div>
+                    <div class="text-xs text-gray-400">Unknown</div>
+                </div>
+            </div>
+
+            <!-- Current Account -->
+            <div id="current-account" class="bg-gray-700 rounded-lg p-4 hidden">
+                <div class="flex items-center space-x-3">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                    <div>
+                        <div class="text-sm text-gray-400">Checking account health...</div>
+                        <div class="font-medium text-white" id="current-username">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Log -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h3 class="text-lg font-semibold mb-4">Activity Log</h3>
+        <div id="event-log" class="space-y-2 max-h-96 overflow-y-auto">
+            <div class="text-gray-500 text-center py-4">Waiting for events...</div>
+        </div>
+    </div>
+
+    <!-- Hidden data container for HTMX -->
+    <div id="job-status"
+         hx-get="/api/jobs/{{ job_id }}"
+         hx-trigger="every 2s"
+         hx-swap="none"
+         style="display: none;">
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-center gap-4">
+        <button id="cancel-btn" onclick="cancelJob()" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md font-medium">
+            Cancel Job
+        </button>
+        <a href="/accounts" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md">
+            Back to Accounts
+        </a>
+    </div>
+</div>
+
+<script>
+    let lastEventCount = 0;
+    const totalAccounts = {{ count }};
+    let isComplete = false;
+    let statusCounts = { active: 0, suspended: 0, shadowbanned: 0, unknown: 0 };
+
+    function updateProgress(data) {
+        if (!data || isComplete) return;
+
+        const status = data.status;
+        const meta = data.meta || {};
+        const events = meta.events || [];
+
+        // Update progress
+        let currentAccount = meta.current_account || 0;
+        const progress = totalAccounts > 0 ? (currentAccount / totalAccounts) * 100 : 0;
+        document.getElementById('progress-bar').style.width = progress + '%';
+        document.getElementById('progress-text').textContent = currentAccount + ' / ' + totalAccounts;
+
+        // Process new events
+        if (events.length > lastEventCount) {
+            const newEvents = events.slice(lastEventCount);
+            const logContainer = document.getElementById('event-log');
+
+            // Remove "waiting" message if present
+            if (lastEventCount === 0) {
+                logContainer.innerHTML = '';
+            }
+
+            newEvents.forEach(event => {
+                const eventEl = createEventElement(event);
+                logContainer.appendChild(eventEl);
+
+                // Update counters based on check_complete events
+                if (event.type === 'check_complete' && event.status) {
+                    const s = event.status.toLowerCase();
+                    if (s === 'active') statusCounts.active++;
+                    else if (s === 'suspended' || s === 'banned') statusCounts.suspended++;
+                    else if (s === 'shadowbanned') statusCounts.shadowbanned++;
+                    else statusCounts.unknown++;
+
+                    document.getElementById('active-count').textContent = statusCounts.active;
+                    document.getElementById('suspended-count').textContent = statusCounts.suspended;
+                    document.getElementById('shadowbanned-count').textContent = statusCounts.shadowbanned;
+                    document.getElementById('unknown-count').textContent = statusCounts.unknown;
+                }
+            });
+
+            // Scroll to bottom
+            logContainer.scrollTop = logContainer.scrollHeight;
+            lastEventCount = events.length;
+        }
+
+        // Update current account
+        const currentAccountEl = document.getElementById('current-account');
+        if (status === 'started' && currentAccount > 0 && currentAccount <= totalAccounts) {
+            currentAccountEl.classList.remove('hidden');
+
+            const accountStartEvents = events.filter(e => e.type === 'account_start');
+            if (accountStartEvents.length > 0) {
+                const lastEvent = accountStartEvents[accountStartEvents.length - 1];
+                document.getElementById('current-username').textContent = lastEvent.username || '-';
+            }
+        } else {
+            currentAccountEl.classList.add('hidden');
+        }
+
+        // Check if complete
+        if (status === 'finished' || status === 'failed') {
+            isComplete = true;
+            currentAccountEl.classList.add('hidden');
+
+            const logContainer = document.getElementById('event-log');
+            const completionMsg = document.createElement('div');
+            completionMsg.className = 'bg-gray-700 rounded-lg p-3 text-center';
+            completionMsg.innerHTML = status === 'finished'
+                ? '<span class="text-green-400 font-medium">✓ Health check complete</span>'
+                : '<span class="text-red-400 font-medium">✗ Job failed</span>';
+            logContainer.appendChild(completionMsg);
+
+            setTimeout(() => {
+                window.location.href = '/accounts';
+            }, 3000);
+        }
+    }
+
+    function createEventElement(event) {
+        const div = document.createElement('div');
+        div.className = 'bg-gray-700 rounded-lg p-3 text-sm';
+
+        let icon = '';
+        let content = '';
+        let colorClass = 'text-gray-300';
+
+        switch(event.type) {
+            case 'task_start':
+                icon = '🚀';
+                content = `Started health check for ${event.total_accounts} account(s)`;
+                colorClass = 'text-blue-400';
+                break;
+
+            case 'account_start':
+                icon = '👤';
+                content = `[${event.account_index}/${event.total_accounts}] Checking <strong>${event.username}</strong>`;
+                colorClass = 'text-gray-300';
+                break;
+
+            case 'check_complete':
+                const statusLower = (event.status || '').toLowerCase();
+                if (statusLower === 'active') {
+                    icon = '✓';
+                    colorClass = 'text-green-400';
+                } else if (statusLower === 'suspended' || statusLower === 'banned') {
+                    icon = '✗';
+                    colorClass = 'text-red-400';
+                } else if (statusLower === 'shadowbanned') {
+                    icon = '⚠';
+                    colorClass = 'text-yellow-400';
+                } else {
+                    icon = '?';
+                    colorClass = 'text-gray-400';
+                }
+                content = `<strong>${event.username}</strong> - ${event.status}`;
+                break;
+
+            case 'account_failed':
+                icon = '✗';
+                content = `Account ID ${event.account_id}: ${event.error}`;
+                colorClass = 'text-red-400';
+                break;
+
+            default:
+                icon = '•';
+                content = JSON.stringify(event);
+                colorClass = 'text-gray-400';
+        }
+
+        div.innerHTML = `
+            <div class="flex items-start space-x-2">
+                <span class="text-lg">${icon}</span>
+                <div class="flex-1">
+                    <div class="${colorClass}">${content}</div>
+                    ${event.message ? `<div class="text-xs text-gray-500 mt-1">${event.message}</div>` : ''}
+                </div>
+            </div>
+        `;
+
+        return div;
+    }
+
+    // Listen for HTMX updates
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.target.id === 'job-status') {
+            try {
+                const data = JSON.parse(evt.detail.xhr.responseText);
+                updateProgress(data);
+            } catch (e) {
+                console.error('Failed to parse job status:', e);
+            }
+        }
+    });
+
+    // Cancel job function
+    async function cancelJob() {
+        const btn = document.getElementById('cancel-btn');
+        btn.disabled = true;
+        btn.textContent = 'Cancelling...';
+        btn.classList.remove('bg-red-600', 'hover:bg-red-700');
+        btn.classList.add('bg-gray-500');
+
+        try {
+            const response = await fetch('/api/jobs/{{ job_id }}/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                btn.textContent = 'Cancelled';
+                setTimeout(() => {
+                    window.location.href = '/accounts';
+                }, 1500);
+            } else {
+                btn.textContent = 'Cancel Failed';
+                btn.classList.remove('bg-gray-500');
+                btn.classList.add('bg-red-600', 'hover:bg-red-700');
+                btn.disabled = false;
+            }
+        } catch (e) {
+            btn.textContent = 'Cancel Failed';
+            btn.classList.remove('bg-gray-500');
+            btn.classList.add('bg-red-600', 'hover:bg-red-700');
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}

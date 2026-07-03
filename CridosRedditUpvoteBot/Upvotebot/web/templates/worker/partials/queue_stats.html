@@ -1,0 +1,13 @@
+<!-- Queue Stats Partial -->
+<div class="bg-gray-800 rounded-lg p-4">
+    <div class="text-3xl font-bold text-red-500">{{ queue_stats.high.queued }}</div>
+    <div class="text-gray-400 text-sm">High Priority Queue</div>
+</div>
+<div class="bg-gray-800 rounded-lg p-4">
+    <div class="text-3xl font-bold text-blue-500">{{ queue_stats.default.queued }}</div>
+    <div class="text-gray-400 text-sm">Default Queue</div>
+</div>
+<div class="bg-gray-800 rounded-lg p-4">
+    <div class="text-3xl font-bold text-gray-500">{{ queue_stats.low.queued }}</div>
+    <div class="text-gray-400 text-sm">Low Priority Queue</div>
+</div>

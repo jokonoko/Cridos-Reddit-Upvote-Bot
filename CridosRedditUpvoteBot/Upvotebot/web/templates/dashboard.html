@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Cridos Reddit Farm{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div>
+        <h1 class="text-3xl font-bold">Dashboard</h1>
+        <p class="text-gray-400 mt-1">Overview of your Cridos Reddit Farm</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+         hx-get="/accounts/partials/stats"
+         hx-trigger="every 30s"
+         hx-swap="innerHTML">
+        {% include "accounts/partials/stats.html" %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Quick Actions</h2>
+        <div class="flex flex-wrap gap-4">
+            <a href="/accounts/add" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md font-medium">
+                Add Account
+            </a>
+            <a href="/upvotes" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-md font-medium">
+                Upvote Post
+            </a>
+            <form action="/accounts/check-health" method="POST" class="inline">
+                <input type="hidden" name="account_ids" value="all">
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md font-medium">
+                    Check All Health
+                </button>
+            </form>
+            <form action="/worker/run-batch" method="POST" class="inline">
+                <input type="hidden" name="account_ids" value="all">
+                <input type="hidden" name="limit" value="5">
+                <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md font-medium">
+                    Run Worker (5 accounts)
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Accounts Overview -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Accounts</h2>
+                <a href="/accounts" class="text-sm text-orange-500 hover:text-orange-400">View All</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-gray-400 text-sm">
+                            <th class="pb-2">Username</th>
+                            <th class="pb-2">Status</th>
+                            <th class="pb-2">Last Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700">
+                        {% for account in accounts[:10] %}
+                        <tr>
+                            <td class="py-2">
+                                <a href="/accounts/{{ account.username }}" class="text-orange-500 hover:underline">
+                                    {{ account.username }}
+                                </a>
+                            </td>
+                            <td class="py-2">
+                                <span class="status-{{ account.status }}">{{ account.status }}</span>
+                            </td>
+                            <td class="py-2 text-gray-400 text-sm">
+                                {{ account.last_action or 'Never' }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="py-4 text-center text-gray-500">
+                                No accounts yet. <a href="/accounts/add" class="text-orange-500 hover:underline">Add one</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Recent Activity</h2>
+                <span class="text-sm text-gray-400">Last 10 actions</span>
+            </div>
+            <div class="space-y-2"
+                 hx-get="/upvotes/partials/recent"
+                 hx-trigger="every 10s"
+                 hx-swap="innerHTML">
+                {% for log in recent_logs %}
+                <div class="flex items-center justify-between py-2 border-b border-gray-700">
+                    <div class="flex items-center space-x-3">
+                        <span class="{% if log.status == 'success' %}text-green-500{% else %}text-red-500{% endif %}">
+                            {% if log.status == 'success' %}&#10003;{% else %}&#10007;{% endif %}
+                        </span>
+                        <span class="text-sm">{{ log.action_type }}</span>
+                    </div>
+                    <span class="text-xs text-gray-500">{{ log.executed_at }}</span>
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-4">No activity yet</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+<!-- Account List with Checkboxes -->
+<div class="text-sm text-gray-400 mb-3">
+    {{ batch_stats.processed }}/{{ batch_stats.total_active }} accounts processed
+</div>
+
+<div class="max-h-96 overflow-y-auto">
+    <table class="w-full">
+        <thead class="sticky top-0 bg-gray-800">
+            <tr class="text-left text-gray-400 text-sm border-b border-gray-700">
+                <th class="pb-2 w-10">#</th>
+                <th class="pb-2">Account</th>
+                <th class="pb-2 w-20 text-center">Status</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-700">
+            {% for account in accounts %}
+            <tr class="{% if account.worker_batch_processed %}bg-green-900/10{% endif %}">
+                <td class="py-2 text-gray-500 text-sm">{{ loop.index }}</td>
+                <td class="py-2">
+                    <a href="/accounts/{{ account.username }}" class="text-orange-500 hover:underline">
+                        {{ account.username }}
+                    </a>
+                    {% if account.last_worker_run %}
+                    <div class="text-xs text-gray-500">Last: {{ account.last_worker_run }}</div>
+                    {% endif %}
+                </td>
+                <td class="py-2 text-center">
+                    {% if account.worker_batch_processed %}
+                    <span class="text-green-500 text-lg" title="Processed">&#10003;</span>
+                    {% else %}
+                    <span class="text-gray-600 text-lg" title="Not processed">&#9675;</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" class="py-4 text-center text-gray-500">
+                    No active accounts
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

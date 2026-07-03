@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Accounts - Cridos Reddit Farm{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold">Accounts</h1>
+            <p class="text-gray-400 mt-1">Manage your Reddit accounts</p>
+        </div>
+        <div class="flex gap-3 flex-wrap">
+            <a href="/accounts/add" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md font-medium">
+                Add Account
+            </a>
+            <a href="/accounts/bulk-import" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-md font-medium">
+                Bulk Import
+            </a>
+        </div>
+    </div>
+
+    <!-- Bulk Action Bar (shown when accounts selected) -->
+    <div id="bulk-action-bar" class="hidden bg-gray-800 border border-orange-500 rounded-lg p-4">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center gap-3">
+                <span class="text-orange-400 font-medium">
+                    <span id="selected-count">0</span> account(s) selected
+                </span>
+                <button type="button" id="clear-selection" class="text-sm text-gray-400 hover:text-white underline">
+                    Clear selection
+                </button>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+                <form action="/accounts/check-health" method="POST" class="inline bulk-action-form">
+                    <input type="hidden" name="account_ids" class="selected-ids-input" value="">
+                    <button type="submit" class="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 rounded-md font-medium">
+                        Check Health
+                    </button>
+                </form>
+                <form action="/accounts/check-login-status" method="POST" class="inline bulk-action-form">
+                    <input type="hidden" name="account_ids" class="selected-ids-input" value="">
+                    <button type="submit" class="px-3 py-1.5 text-sm bg-cyan-600 hover:bg-cyan-700 rounded-md font-medium">
+                        Check Logins
+                    </button>
+                </form>
+                <form action="/accounts/retry-login" method="POST" class="inline bulk-action-form">
+                    <input type="hidden" name="account_ids" class="selected-ids-input" value="">
+                    <button type="submit" class="px-3 py-1.5 text-sm bg-purple-600 hover:bg-purple-700 rounded-md font-medium">
+                        Retry Login
+                    </button>
+                </form>
+                <form action="/accounts/enable-mature-content" method="POST" class="inline bulk-action-form">
+                    <input type="hidden" name="account_ids" class="selected-ids-input" value="">
+                    <button type="submit" class="px-3 py-1.5 text-sm bg-pink-600 hover:bg-pink-700 rounded-md font-medium">
+                        Enable 18+
+                    </button>
+                </form>
+                <form action="/accounts/bulk-delete" method="POST" class="inline bulk-action-form" id="bulk-delete-form">
+                    <input type="hidden" name="account_ids" class="selected-ids-input" value="">
+                    <button type="submit" class="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 rounded-md font-medium">
+                        Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions (all accounts) -->
+    <div class="bg-gray-800 rounded-lg p-4">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <span class="text-gray-400 text-sm">Quick actions (all accounts):</span>
+            <div class="flex gap-2 flex-wrap">
+                <form action="/accounts/check-health" method="POST" class="inline">
+                    <input type="hidden" name="account_ids" value="all">
+                    <button type="submit" class="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 rounded-md font-medium">
+                        Check All Health
+                    </button>
+                </form>
+                <form action="/accounts/check-login-status" method="POST" class="inline">
+                    <input type="hidden" name="account_ids" value="active">
+                    <button type="submit" class="px-3 py-1.5 text-sm bg-cyan-600 hover:bg-cyan-700 rounded-md font-medium">
+                        Check Active Logins
+                    </button>
+                </form>
+                <form action="/accounts/retry-login" method="POST" class="inline">
+                    <input type="hidden" name="account_ids" value="not_logged_in">
+                    <button type="submit" class="px-3 py-1.5 text-sm bg-purple-600 hover:bg-purple-700 rounded-md font-medium">
+                        Retry Failed Logins
+                    </button>
+                </form>
+                <form action="/accounts/enable-mature-content" method="POST" class="inline">
+                    <input type="hidden" name="account_ids" value="active">
+                    <button type="submit" class="px-3 py-1.5 text-sm bg-pink-600 hover:bg-pink-700 rounded-md font-medium">
+                        Enable 18+ (Active)
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {% include "accounts/partials/stats.html" %}
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-gray-800 rounded-lg p-4">
+        <div class="flex flex-wrap gap-2">
+            <a href="/accounts"
+               class="px-3 py-1 rounded-md text-sm {% if not filter_status %}bg-orange-600{% else %}bg-gray-700 hover:bg-gray-600{% endif %}">
+                All
+            </a>
+            <a href="/accounts?status=active"
+               class="px-3 py-1 rounded-md text-sm {% if filter_status == 'active' %}bg-green-600{% else %}bg-gray-700 hover:bg-gray-600{% endif %}">
+                Active
+            </a>
+            <a href="/accounts?status=suspended"
+               class="px-3 py-1 rounded-md text-sm {% if filter_status == 'suspended' %}bg-red-600{% else %}bg-gray-700 hover:bg-gray-600{% endif %}">
+                Suspended
+            </a>
+            <a href="/accounts?status=shadowbanned"
+               class="px-3 py-1 rounded-md text-sm {% if filter_status == 'shadowbanned' %}bg-yellow-600{% else %}bg-gray-700 hover:bg-gray-600{% endif %}">
+                Shadowbanned
+            </a>
+            <a href="/accounts?status=unknown"
+               class="px-3 py-1 rounded-md text-sm {% if filter_status == 'unknown' %}bg-gray-500{% else %}bg-gray-700 hover:bg-gray-600{% endif %}">
+                Unknown
+            </a>
+        </div>
+    </div>
+
+    <!-- Accounts Table -->
+    <div class="bg-gray-800 rounded-lg overflow-hidden">
+        <div id="accounts-table-container"
+             hx-get="/accounts/partials/table{% if filter_status %}?status={{ filter_status }}{% endif %}"
+             hx-trigger="every 30s"
+             hx-swap="innerHTML">
+            {% include "accounts/partials/table.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+    // Selection state
+    let selectedIds = new Set();
+
+    // DOM elements
+    const bulkActionBar = document.getElementById('bulk-action-bar');
+    const selectedCountEl = document.getElementById('selected-count');
+    const clearSelectionBtn = document.getElementById('clear-selection');
+    const bulkDeleteForm = document.getElementById('bulk-delete-form');
+
+    // Update UI based on selection
+    function updateUI() {
+        const count = selectedIds.size;
+        selectedCountEl.textContent = count;
+
+        if (count > 0) {
+            bulkActionBar.classList.remove('hidden');
+        } else {
+            bulkActionBar.classList.add('hidden');
+        }
+
+        // Update all hidden inputs with selected IDs
+        const idsString = Array.from(selectedIds).join(',');
+        document.querySelectorAll('.selected-ids-input').forEach(input => {
+            input.value = idsString;
+        });
+
+        // Update select-all checkbox state
+        const selectAllCheckbox = document.getElementById('select-all');
+        const allCheckboxes = document.querySelectorAll('.account-checkbox');
+        if (selectAllCheckbox && allCheckboxes.length > 0) {
+            const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+            const someChecked = Array.from(allCheckboxes).some(cb => cb.checked);
+            selectAllCheckbox.checked = allChecked;
+            selectAllCheckbox.indeterminate = someChecked && !allChecked;
+        }
+    }
+
+    // Handle checkbox changes
+    function handleCheckboxChange(e) {
+        const checkbox = e.target;
+        const accountId = checkbox.dataset.accountId;
+
+        if (checkbox.checked) {
+            selectedIds.add(accountId);
+        } else {
+            selectedIds.delete(accountId);
+        }
+
+        updateUI();
+    }
+
+    // Handle select all
+    function handleSelectAll(e) {
+        const isChecked = e.target.checked;
+        document.querySelectorAll('.account-checkbox').forEach(checkbox => {
+            checkbox.checked = isChecked;
+            const accountId = checkbox.dataset.accountId;
+            if (isChecked) {
+                selectedIds.add(accountId);
+            } else {
+                selectedIds.delete(accountId);
+            }
+        });
+        updateUI();
+    }
+
+    // Clear selection
+    function clearSelection() {
+        selectedIds.clear();
+        document.querySelectorAll('.account-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        const selectAllCheckbox = document.getElementById('select-all');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        }
+        updateUI();
+    }
+
+    // Confirm bulk delete
+    function confirmBulkDelete(e) {
+        const count = selectedIds.size;
+        if (!confirm(`Are you sure you want to delete ${count} account(s)? This cannot be undone.`)) {
+            e.preventDefault();
+        }
+    }
+
+    // Attach event listeners
+    function attachListeners() {
+        // Individual checkboxes
+        document.querySelectorAll('.account-checkbox').forEach(checkbox => {
+            checkbox.removeEventListener('change', handleCheckboxChange);
+            checkbox.addEventListener('change', handleCheckboxChange);
+
+            // Restore checked state if in selectedIds
+            if (selectedIds.has(checkbox.dataset.accountId)) {
+                checkbox.checked = true;
+            }
+        });
+
+        // Select all checkbox
+        const selectAllCheckbox = document.getElementById('select-all');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.removeEventListener('change', handleSelectAll);
+            selectAllCheckbox.addEventListener('change', handleSelectAll);
+        }
+
+        updateUI();
+    }
+
+    // Clear selection button
+    if (clearSelectionBtn) {
+        clearSelectionBtn.addEventListener('click', clearSelection);
+    }
+
+    // Bulk delete confirmation
+    if (bulkDeleteForm) {
+        bulkDeleteForm.addEventListener('submit', confirmBulkDelete);
+    }
+
+    // Initial attachment
+    attachListeners();
+
+    // Re-attach listeners after HTMX swap (table refresh)
+    document.body.addEventListener('htmx:afterSwap', function(e) {
+        if (e.detail.target.id === 'accounts-table-container') {
+            attachListeners();
+        }
+    });
+})();
+</script>
+{% endblock %}

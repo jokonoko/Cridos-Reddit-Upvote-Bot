@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # Redis for task queue
+  redis:
+    image: redis:7-alpine
+    container_name: redditfarm-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Web dashboard + API
+  web:
+    build: .
+    container_name: redditfarm-web
+    restart: unless-stopped
+    command: uvicorn web.app:app --host 0.0.0.0 --port 8000
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    environment:
+      - DATABASE_PATH=/app/data/farm.db
+      - PROFILES_DIR=/app/profiles
+      - LOG_DIR=/app/logs
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-changeme-in-production}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - PROXY_PROVIDER=${PROXY_PROVIDER:-}
+      - PROXY_HOST=${PROXY_HOST:-}
+      - PROXY_PORT=${PROXY_PORT:-}
+      - PROXY_USERNAME=${PROXY_USERNAME:-}
+      - PROXY_PASSWORD=${PROXY_PASSWORD:-}
+      - HEADLESS=true
+    volumes:
+      - app_data:/app/data
+      - browser_profiles:/app/profiles
+      - app_logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Background worker for browser automation tasks
+  worker:
+    build: .
+    container_name: redditfarm-worker
+    restart: unless-stopped
+    command: rq worker --url redis://redis:6379/0 high default low
+    environment:
+      - DATABASE_PATH=/app/data/farm.db
+      - PROFILES_DIR=/app/profiles
+      - LOG_DIR=/app/logs
+      - REDIS_URL=redis://redis:6379/0
+      # Proxy settings
+      - PROXY_PROVIDER=${PROXY_PROVIDER:-}
+      - PROXY_HOST=${PROXY_HOST:-}
+      - PROXY_PORT=${PROXY_PORT:-}
+      - PROXY_USERNAME=${PROXY_USERNAME:-}
+      - PROXY_PASSWORD=${PROXY_PASSWORD:-}
+      # Mobile proxy rotation
+      - PROXY_TYPE=${PROXY_TYPE:-http}
+      - PROXY_ROTATION_URL=${PROXY_ROTATION_URL:-}
+      - PROXY_ROTATION_ENABLED=${PROXY_ROTATION_ENABLED:-false}
+      # Browser & delays
+      - HEADLESS=true
+      - MIN_ACTION_DELAY=${MIN_ACTION_DELAY:-30}
+      - MAX_ACTION_DELAY=${MAX_ACTION_DELAY:-180}
+      - DELAY_BETWEEN_POSTS_MIN=${DELAY_BETWEEN_POSTS_MIN:-2}
+      - DELAY_BETWEEN_POSTS_MAX=${DELAY_BETWEEN_POSTS_MAX:-4}
+    volumes:
+      - app_data:/app/data
+      - browser_profiles:/app/profiles
+      - app_logs:/app/logs
+      - ./screenshots:/app/screenshots
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # Scheduled worker for account aging (cron-like)
+  # DISABLED: Now using manual batch control from web UI instead
+  # Uncomment to re-enable automatic nightly scheduling
+  # scheduler:
+  #   build: .
+  #   container_name: redditfarm-scheduler
+  #   restart: unless-stopped
+  #   command: python web/scheduler.py
+  #   environment:
+  #     - DATABASE_PATH=/app/data/farm.db
+  #     - PROFILES_DIR=/app/profiles
+  #     - LOG_DIR=/app/logs
+  #     - REDIS_URL=redis://redis:6379/0
+  #     - WORKER_START_HOUR=${WORKER_START_HOUR:-0}
+  #     - WORKER_END_HOUR=${WORKER_END_HOUR:-5}
+  #     - WORKER_TIMEZONE=${WORKER_TIMEZONE:-UTC}
+  #     - WORKER_SKIP_PROBABILITY=${WORKER_SKIP_PROBABILITY:-0.2}
+  #   volumes:
+  #     - app_data:/app/data
+  #     - browser_profiles:/app/profiles
+  #     - app_logs:/app/logs
+  #   depends_on:
+  #     - redis
+  #     - worker
+
+volumes:
+  redis_data:
+  app_data:
+  browser_profiles:
+  app_logs:

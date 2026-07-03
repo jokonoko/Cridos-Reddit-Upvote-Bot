@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Worker - Cridos Reddit Farm{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Controls -->
+    <div class="flex flex-wrap justify-between items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-bold">Worker</h1>
+            <p class="text-gray-400 mt-1">Manually run worker batches to age accounts</p>
+        </div>
+        <div class="flex gap-3">
+            <!-- Start Batch Button -->
+            <form hx-post="/worker/start-batch"
+                  hx-target="#batch-controls"
+                  hx-swap="innerHTML">
+                <button type="submit"
+                        id="start-btn"
+                        {% if active_job %}disabled{% endif %}
+                        class="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-md font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Start Batch ({{ batch_size }})
+                </button>
+            </form>
+
+            <!-- Stop Button -->
+            <form hx-post="/worker/stop"
+                  hx-target="#batch-controls"
+                  hx-swap="innerHTML">
+                <button type="submit"
+                        id="stop-btn"
+                        {% if not active_job %}disabled{% endif %}
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-md font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>
+                    </svg>
+                    Stop
+                </button>
+            </form>
+
+            <!-- Reset Button -->
+            <form hx-post="/worker/reset"
+                  hx-target="#batch-controls"
+                  hx-swap="innerHTML"
+                  hx-confirm="Reset all accounts? This will mark all accounts as not processed.">
+                <button type="submit"
+                        {% if active_job %}disabled{% endif %}
+                        class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-md font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Reset All
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Batch Controls Response Area -->
+    <div id="batch-controls"></div>
+
+    <!-- Batch Progress Stats -->
+    <div class="bg-gray-800 rounded-lg p-6"
+         hx-get="/worker/partials/batch-stats"
+         hx-trigger="every 5s"
+         hx-swap="innerHTML">
+        {% include "worker/partials/batch_stats.html" %}
+    </div>
+
+    <!-- Live Progress Panel (shows when worker is running) -->
+    <div id="progress-panel"
+         hx-get="/worker/partials/progress"
+         hx-trigger="every 2s"
+         hx-swap="innerHTML">
+        {% if active_job %}
+            {% include "worker/partials/progress_active.html" %}
+        {% else %}
+            {% include "worker/partials/progress_idle.html" %}
+        {% endif %}
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Account List -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Account Queue</h2>
+                <button hx-get="/worker/partials/account-list"
+                        hx-target="#account-list-container"
+                        hx-swap="innerHTML"
+                        class="text-sm text-blue-400 hover:text-blue-300">
+                    Refresh
+                </button>
+            </div>
+            <div id="account-list-container"
+                 hx-get="/worker/partials/account-list"
+                 hx-trigger="every 10s"
+                 hx-swap="innerHTML">
+                {% include "worker/partials/account_list.html" %}
+            </div>
+        </div>
+
+        <!-- Recent Worker Logs -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Recent Activity</h2>
+            <div hx-get="/worker/partials/recent-logs"
+                 hx-trigger="every 5s"
+                 hx-swap="innerHTML">
+                {% include "worker/partials/recent_logs.html" %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Queue Stats -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Queue Status</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4"
+             hx-get="/worker/partials/queue-stats"
+             hx-trigger="every 5s"
+             hx-swap="innerHTML">
+            {% include "worker/partials/queue_stats.html" %}
+        </div>
+    </div>
+
+    <!-- Info -->
+    <div class="bg-gray-700 rounded-lg p-4">
+        <h3 class="font-medium mb-2">How the Worker Works</h3>
+        <ul class="text-sm text-gray-400 space-y-1">
+            <li><strong>Start Batch:</strong> Processes the next {{ batch_size }} unprocessed accounts sequentially</li>
+            <li><strong>Stop:</strong> Gracefully stops after the current account finishes</li>
+            <li><strong>Reset:</strong> Clears all checkmarks so you can start from the beginning</li>
+            <li>Each account browses Reddit for 1-5 minutes to build trust</li>
+            <li>IP is rotated before each account for safety</li>
+            <li>Progress is tracked in real-time on this page and in Docker logs</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

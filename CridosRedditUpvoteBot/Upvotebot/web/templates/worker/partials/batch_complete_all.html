@@ -1,0 +1,15 @@
+<!-- All Accounts Processed Response -->
+<div class="bg-blue-900/30 border border-blue-600 rounded-lg p-4">
+    <div class="flex items-center gap-3 mb-2">
+        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span class="text-blue-400 font-semibold">All Accounts Processed!</span>
+    </div>
+    <p class="text-gray-300">
+        All {{ batch_stats.total_active }} accounts have been processed through the worker.
+    </p>
+    <p class="text-sm text-gray-400 mt-2">
+        Click "Reset All" to start from the beginning, or wait and accounts will naturally need re-processing over time.
+    </p>
+</div>

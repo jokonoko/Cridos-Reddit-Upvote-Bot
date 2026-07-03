@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Upvote - Cridos Reddit Farm{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div>
+        <h1 class="text-3xl font-bold">Upvote Posts</h1>
+        <p class="text-gray-400 mt-1">Upvote Reddit posts with randomized accounts</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-gray-800 rounded-lg p-4">
+            <div class="text-3xl font-bold text-green-500">{{ stats.active_accounts }}</div>
+            <div class="text-gray-400 text-sm">Available Accounts</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-4">
+            <div class="text-3xl font-bold text-blue-500">{{ stats.upvotes_last_week }}</div>
+            <div class="text-gray-400 text-sm">Upvotes (7 days)</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-4">
+            <div class="text-3xl font-bold text-red-500">{{ stats.failed_upvotes_last_week }}</div>
+            <div class="text-gray-400 text-sm">Failed (7 days)</div>
+        </div>
+    </div>
+
+    <!-- Error -->
+    {% if error %}
+    <div class="bg-red-900/50 border border-red-500 rounded-lg p-4">
+        <p class="text-red-400">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Upvote Form -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <form action="/upvotes/execute" method="POST" class="space-y-6">
+            <div>
+                <label for="post_urls" class="block text-sm font-medium mb-2">Reddit Post URLs *</label>
+                <textarea id="post_urls" name="post_urls" rows="5" required
+                          class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:border-orange-500 font-mono text-sm"
+                          placeholder="https://reddit.com/r/subreddit/comments/abc123/post_title
+https://reddit.com/r/another/comments/def456/another_post
+https://reddit.com/r/third/comments/ghi789/third_post"></textarea>
+                <p class="text-xs text-gray-500 mt-1">One URL per line. Posts will be processed sequentially.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label for="account_count" class="block text-sm font-medium mb-2">Accounts per Post *</label>
+                    <input type="number" id="account_count" name="account_count" min="1" max="{{ accounts|length }}"
+                           value="{{ accounts|length }}" required
+                           class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:border-orange-500">
+                    <p class="text-xs text-gray-500 mt-1">Max: {{ accounts|length }} active accounts</p>
+                </div>
+
+                <div class="flex items-end">
+                    <button type="submit"
+                            class="w-full px-6 py-2 bg-orange-600 hover:bg-orange-700 rounded-md font-medium"
+                            {% if not accounts %}disabled{% endif %}>
+                        Start Upvoting
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Info Box -->
+    <div class="bg-gray-700 rounded-lg p-4">
+        <h3 class="font-medium mb-2">How it works</h3>
+        <ul class="text-sm text-gray-400 space-y-1">
+            <li>1. Each account upvotes all posts before moving to the next account</li>
+            <li>2. Accounts are <strong class="text-orange-400">randomly shuffled</strong></li>
+            <li>3. IP rotation between accounts helps avoid detection</li>
+            <li>4. Small delays between posts within each account session</li>
+        </ul>
+    </div>
+
+    <!-- Recent Upvotes -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Recent Upvotes</h2>
+        <div hx-get="/upvotes/partials/recent"
+             hx-trigger="every 10s"
+             hx-swap="innerHTML">
+            {% include "upvotes/partials/recent.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}
